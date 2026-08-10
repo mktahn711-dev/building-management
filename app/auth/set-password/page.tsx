@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 
@@ -11,6 +11,14 @@ export default function SetPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  useEffect(() => {
+    // 세션 없으면 로그인으로
+    const supabase = createClient()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) router.replace('/login')
+    })
+  }, [router])
+
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -19,7 +27,6 @@ export default function SetPasswordPage() {
       setError('비밀번호는 최소 6자 이상이어야 합니다.')
       return
     }
-
     if (password !== confirmPassword) {
       setError('비밀번호가 일치하지 않습니다.')
       return
@@ -27,15 +34,37 @@ export default function SetPasswordPage() {
 
     setLoading(true)
     const supabase = createClient()
-    const { error: updateError } = await supabase.auth.updateUser({ password })
 
+    // 1. 비밀번호 설정
+    const { error: updateError } = await supabase.auth.updateUser({ password })
     if (updateError) {
       setError('비밀번호 설정 중 오류가 발생했습니다: ' + updateError.message)
       setLoading(false)
-    } else {
-      router.push('/dashboard')
-      router.refresh()
+      return
     }
+
+    // 2. 현재 유저 정보 가져오기
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      // 3. 프로필이 없으면 유저 메타데이터로 생성 (초대 시 저장된 정보)
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', user.id)
+        .single()
+
+      if (!existingProfile) {
+        const meta = user.user_metadata || {}
+        await supabase.from('profiles').insert({
+          id: user.id,
+          role: meta.role || 'owner',
+          building_id: meta.building_id || null,
+          name: meta.name || null,
+        })
+      }
+    }
+
+    router.replace('/dashboard')
   }
 
   return (
@@ -47,7 +76,7 @@ export default function SetPasswordPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-slate-800">비밀번호 설정</h1>
+          <h1 className="text-2xl font-bold text-slate-800">에이스 종합건물관리 시스템</h1>
           <p className="text-slate-500 text-sm mt-1">사용하실 비밀번호를 설정해주세요</p>
         </div>
 
@@ -61,11 +90,8 @@ export default function SetPasswordPage() {
 
           <form onSubmit={handleSetPassword} className="space-y-5">
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1.5">
-                새 비밀번호
-              </label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">새 비밀번호</label>
               <input
-                id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -74,13 +100,9 @@ export default function SetPasswordPage() {
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition text-slate-800 placeholder-slate-400"
               />
             </div>
-
             <div>
-              <label htmlFor="confirm-password" className="block text-sm font-medium text-slate-700 mb-1.5">
-                비밀번호 확인
-              </label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">비밀번호 확인</label>
               <input
-                id="confirm-password"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -113,12 +135,7 @@ export default function SetPasswordPage() {
                   설정 중...
                 </>
               ) : (
-                <>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                  비밀번호 설정 완료
-                </>
+                '비밀번호 설정 완료'
               )}
             </button>
           </form>
