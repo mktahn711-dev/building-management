@@ -1,11 +1,5 @@
 'use client'
 
-// Supabase Auth 설정 안내:
-// Supabase → Authentication → URL Configuration
-// - Site URL: https://배포된주소.netlify.app
-// - Redirect URLs에 https://배포된주소.netlify.app/auth/callback 추가
-// 이 설정을 해야 초대 이메일의 링크가 이 페이지로 올바르게 리다이렉트됩니다.
-
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
@@ -20,30 +14,48 @@ function SetPasswordForm() {
   const [sessionReady, setSessionReady] = useState(false)
   const [checking, setChecking] = useState(true)
 
-  // Supabase는 초대 링크에 #access_token=... 형태의 해시를 붙입니다.
-  // createBrowserClient가 자동으로 해시에서 세션을 추출합니다.
   useEffect(() => {
     const supabase = createClient()
 
-    const checkSession = async () => {
-      // 잠시 대기 후 세션 확인 (해시 파싱 시간 확보)
-      await new Promise((resolve) => setTimeout(resolve, 500))
+    const handleCallback = async () => {
+      // PKCE 방식: URL에 ?code= 파라미터가 있는 경우
+      const code = searchParams.get('code')
+
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        if (!error) {
+          setSessionReady(true)
+          setChecking(false)
+          return
+        }
+      }
+
+      // 해시 방식: #access_token= 이 있는 경우 (구버전)
+      await new Promise((resolve) => setTimeout(resolve, 800))
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
         setSessionReady(true)
-      } else {
-        // onAuthStateChange로도 감지
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-          if (event === 'SIGNED_IN' && session) {
-            setSessionReady(true)
-            subscription.unsubscribe()
-          }
-        })
+        setChecking(false)
+        return
       }
-      setChecking(false)
+
+      // onAuthStateChange로도 감지 시도
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session) {
+          setSessionReady(true)
+          setChecking(false)
+          subscription.unsubscribe()
+        }
+      })
+
+      // 3초 후에도 세션 없으면 실패 처리
+      setTimeout(() => {
+        setChecking(false)
+        subscription.unsubscribe()
+      }, 3000)
     }
 
-    checkSession()
+    handleCallback()
   }, [searchParams])
 
   const handleSetPassword = async (e: React.FormEvent) => {
@@ -68,7 +80,6 @@ function SetPasswordForm() {
       setError('비밀번호 설정 중 오류가 발생했습니다: ' + updateError.message)
       setLoading(false)
     } else {
-      // 비밀번호 설정 완료 후 대시보드로 이동
       router.push('/dashboard')
       router.refresh()
     }
@@ -100,7 +111,7 @@ function SetPasswordForm() {
             </div>
             <h2 className="text-xl font-bold text-slate-800 mb-2">유효하지 않은 링크</h2>
             <p className="text-slate-500 text-sm mb-6">
-              초대 링크가 만료됐거나 올바르지 않습니다. 관리자에게 재초대를 요청하세요.
+              초대 링크가 만료됐거나 올바르지 않습니다.<br />관리자에게 재초대를 요청하세요.
             </p>
             <a
               href="/login"
@@ -117,7 +128,6 @@ function SetPasswordForm() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-slate-100 px-4">
       <div className="w-full max-w-md">
-        {/* 로고 */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,7 +139,6 @@ function SetPasswordForm() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
-          {/* 안내 메시지 */}
           <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-6">
             <svg className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
