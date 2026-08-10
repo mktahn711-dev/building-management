@@ -2,33 +2,60 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { createBrowserClient } from '@supabase/supabase-js'
 
 export default function AuthCallbackPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const supabase = createClient()
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
 
-    // Supabase가 해시(#access_token=...)로 세션을 보냄
-    // onAuthStateChange가 자동으로 해시를 파싱해서 세션 설정
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        subscription.unsubscribe()
-        router.replace('/auth/set-password')
+    const processAuth = async () => {
+      // URL 해시에서 직접 토큰 파싱 (모바일 호환)
+      const hash = window.location.hash
+      if (hash && hash.includes('access_token')) {
+        const params = new URLSearchParams(hash.substring(1))
+        const accessToken = params.get('access_token')
+        const refreshToken = params.get('refresh_token')
+
+        if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          })
+          if (!error) {
+            router.replace('/auth/set-password')
+            return
+          }
+        }
       }
-    })
 
-    // 이미 세션이 있는 경우
-    supabase.auth.getSession().then(({ data: { session } }) => {
+      // 이미 세션이 있는 경우
+      const { data: { session } } = await supabase.auth.getSession()
       if (session) {
         router.replace('/auth/set-password')
+        return
       }
-    })
 
-    return () => {
-      subscription.unsubscribe()
+      // onAuthStateChange로 대기
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (session) {
+          subscription.unsubscribe()
+          router.replace('/auth/set-password')
+        }
+      })
+
+      // 5초 후 실패 처리
+      setTimeout(() => {
+        subscription.unsubscribe()
+        router.replace('/login')
+      }, 5000)
     }
+
+    processAuth()
   }, [router])
 
   return (

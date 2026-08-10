@@ -16,6 +16,12 @@ const itemEmojis: Record<string, string> = {
   방향제: '🌸',
   포충기: '💡',
   창틀청소: '🪟',
+  입주청소: '🏠',
+  도배: '🖌️',
+  입실: '🔑',
+  퇴실: '🚪',
+  철거: '🔨',
+  시설관리: '🔧',
 }
 
 export default function MaintenanceForm({ buildings }: MaintenanceFormProps) {

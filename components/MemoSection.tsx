@@ -36,7 +36,7 @@ export default function MemoSection({ memos: initialMemos, buildingId, isAdmin, 
 
     setLoading(false)
     if (insertErr) {
-      setError('메모 등록 중 오류가 발생했습니다.')
+      setError('메모 등록 중 오류가 발생했습니다: ' + insertErr.message)
     } else if (data) {
       setMemos([data, ...memos])
       setContent('')
