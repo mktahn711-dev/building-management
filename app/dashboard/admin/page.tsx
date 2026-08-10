@@ -35,7 +35,13 @@ export default async function AdminPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
           </svg>
           <p className="text-slate-500 font-medium">등록된 건물이 없습니다</p>
-          <p className="text-slate-400 text-sm mt-1">먼저 Supabase에서 건물을 등록해주세요</p>
+          <p className="text-slate-400 text-sm mt-1">먼저 건물 관리 메뉴에서 건물을 등록해주세요</p>
+          <a
+            href="/dashboard/admin/buildings"
+            className="inline-block mt-4 px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition"
+          >
+            건물 관리로 이동
+          </a>
         </div>
       </div>
     )
