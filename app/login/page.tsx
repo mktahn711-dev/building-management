@@ -34,7 +34,7 @@ export default function LoginPage() {
         {/* 로고 영역 */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-5">
-            <img src="/logo.png" alt="ACE 로고" className="h-16 object-contain" />
+            <img src="/logo.png" alt="ACE 로고" className="h-28 object-contain" />
           </div>
           <p className="text-slate-500 text-sm mt-1">로그인하여 관리를 시작하세요</p>
         </div>

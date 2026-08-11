@@ -72,7 +72,7 @@ export default function SetPasswordPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-5">
-            <img src="/logo.png" alt="ACE 로고" className="h-16 object-contain" />
+            <img src="/logo.png" alt="ACE 로고" className="h-28 object-contain" />
           </div>
           <p className="text-slate-500 text-sm mt-1">사용하실 비밀번호를 설정해주세요</p>
         </div>
