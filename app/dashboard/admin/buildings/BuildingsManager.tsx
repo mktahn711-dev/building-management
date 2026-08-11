@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { Building } from '@/lib/types'
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://ace-management.netlify.app'
+
 interface BuildingsManagerProps {
   initialBuildings: Building[]
 }
@@ -18,6 +20,7 @@ export default function BuildingsManager({ initialBuildings }: BuildingsManagerP
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [qrBuildingId, setQrBuildingId] = useState<string | null>(null)
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -192,7 +195,7 @@ export default function BuildingsManager({ initialBuildings }: BuildingsManagerP
           <ul className="divide-y divide-slate-100">
             {buildings.map((building) => (
               <li key={building.id} className="py-4 first:pt-0 last:pb-0">
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
                       <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -207,8 +210,20 @@ export default function BuildingsManager({ initialBuildings }: BuildingsManagerP
                     </div>
                   </div>
 
-                  {/* 삭제 버튼 / 확인 */}
-                  <div className="flex-shrink-0">
+                  {/* 버튼 영역 */}
+                  <div className="flex-shrink-0 flex items-center gap-2">
+                    {/* QR코드 버튼 */}
+                    <button
+                      onClick={() => setQrBuildingId(qrBuildingId === building.id ? null : building.id)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                      </svg>
+                      QR
+                    </button>
+
+                    {/* 삭제 버튼 / 확인 */}
                     {confirmDeleteId === building.id ? (
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-slate-600">정말 삭제할까요?</span>
@@ -239,6 +254,33 @@ export default function BuildingsManager({ initialBuildings }: BuildingsManagerP
                     )}
                   </div>
                 </div>
+                {/* QR코드 패널 */}
+                {qrBuildingId === building.id && (() => {
+                  const url = `${SITE_URL}/view/${building.id}`
+                  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`
+                  return (
+                    <div className="w-full mt-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                      <p className="text-sm font-medium text-slate-700 mb-3">세입자용 QR코드 · {building.name}</p>
+                      <div className="flex flex-col sm:flex-row items-start gap-4">
+                        <img src={qrUrl} alt="QR코드" className="w-40 h-40 rounded-lg border border-slate-200 bg-white p-1" />
+                        <div className="flex flex-col gap-2 flex-1">
+                          <p className="text-xs text-slate-500 break-all bg-white border border-slate-200 rounded-lg px-3 py-2">{url}</p>
+                          <a
+                            href={qrUrl}
+                            download={`QR_${building.name}.png`}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition w-fit"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            QR코드 저장
+                          </a>
+                          <p className="text-xs text-slate-400">QR코드를 인쇄해서 건물에 부착하세요</p>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
               </li>
             ))}
           </ul>

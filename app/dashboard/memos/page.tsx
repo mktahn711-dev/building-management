@@ -46,7 +46,7 @@ export default async function MemosPage() {
   if (isAdmin) {
     const { data } = await supabase
       .from('memos')
-      .select('*, buildings(name)')
+      .select('*')
       .order('created_at', { ascending: false })
     allMemos = data || []
   } else if (profile.building_id) {
