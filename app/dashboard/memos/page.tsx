@@ -75,7 +75,7 @@ export default async function MemosPage() {
 
       {/* 관리자: 건물별 메모 탭 */}
       {isAdmin && buildings.length > 0 && (
-        <AdminMemosView buildings={buildings} allMemos={allMemos} currentUserId={user.id} />
+        <AdminMemosView buildings={buildings} currentUserId={user.id} />
       )}
 
       {/* 건물주: 단일 건물 메모 */}
