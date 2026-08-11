@@ -86,7 +86,7 @@ export default function NavBar({ profile, user }: NavBarProps) {
         <div className="flex items-center justify-between h-16">
           {/* 로고 */}
           <Link href="/dashboard" className="flex items-center">
-            <img src="/logo.png" alt="ACE" className="h-14 object-contain" />
+            <img src="/navlogo.png" alt="ACE" className="h-12 object-contain" />
           </Link>
 
           {/* 데스크톱 네비게이션 */}
