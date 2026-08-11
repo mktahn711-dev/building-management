@@ -85,13 +85,8 @@ export default function NavBar({ profile, user }: NavBarProps) {
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* 로고 */}
-          <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            </div>
-            <span className="font-bold text-slate-800 hidden sm:block">건물 관리</span>
+          <Link href="/dashboard" className="flex items-center">
+            <img src="/logo.png" alt="ACE" className="h-8 object-contain" />
           </Link>
 
           {/* 데스크톱 네비게이션 */}
