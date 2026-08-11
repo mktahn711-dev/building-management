@@ -2,7 +2,9 @@ import { createClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
 import PublicCalendar from '@/components/PublicCalendar'
 
-export default async function PublicViewPage({ params }: { params: { buildingId: string } }) {
+export default async function PublicViewPage({ params }: { params: Promise<{ buildingId: string }> }) {
+  const { buildingId } = await params
+
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -12,7 +14,7 @@ export default async function PublicViewPage({ params }: { params: { buildingId:
   const { data: building } = await supabase
     .from('buildings')
     .select('id, name, address')
-    .eq('id', params.buildingId)
+    .eq('id', buildingId)
     .single()
 
   if (!building) notFound()
