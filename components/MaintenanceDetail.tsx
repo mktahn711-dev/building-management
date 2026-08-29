@@ -15,6 +15,7 @@ const itemEmojis: Record<string, string> = {
   방향제: '🌸',
   포충기: '💡',
   창틀청소: '🪟',
+  바닥청소: '🧽',
   입주청소: '🏠',
   도배: '🖌️',
   입실: '🔑',
@@ -31,7 +32,6 @@ export default function MaintenanceDetail({ log, onClose }: MaintenanceDetailPro
   }
 
   const completedItems = MAINTENANCE_ITEMS.filter((item) => log[item])
-  const pendingItems = MAINTENANCE_ITEMS.filter((item) => !log[item])
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" onClick={onClose}>
@@ -86,29 +86,8 @@ export default function MaintenanceDetail({ log, onClose }: MaintenanceDetailPro
             </div>
           )}
 
-          {/* 미완료 항목 */}
-          {pendingItems.length > 0 && (
-            <div>
-              <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                <span className="w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center">
-                  <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" strokeWidth="2" />
-                  </svg>
-                </span>
-                미완료 항목 ({pendingItems.length})
-              </h4>
-              <div className="grid grid-cols-2 gap-2">
-                {pendingItems.map((item) => (
-                  <div
-                    key={item}
-                    className="flex items-center gap-2 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl"
-                  >
-                    <span className="text-base opacity-50">{itemEmojis[item]}</span>
-                    <span className="text-sm text-slate-400">{item}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {completedItems.length === 0 && (
+            <p className="text-sm text-slate-400 text-center py-2">등록된 관리 항목이 없습니다.</p>
           )}
 
           {/* 특이사항 */}

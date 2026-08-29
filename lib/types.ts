@@ -26,6 +26,7 @@ export interface MaintenanceLog {
   방향제: boolean
   포충기: boolean
   창틀청소: boolean
+  바닥청소: boolean
   입주청소: boolean
   도배: boolean
   입실: boolean
@@ -46,7 +47,7 @@ export interface Memo {
   created_at: string
 }
 
-export type MaintenanceItem = '계단청소' | '화장실청소' | '분리수거' | '방역' | '방향제' | '포충기' | '창틀청소' | '입주청소' | '도배' | '입실' | '퇴실' | '철거' | '시설관리'
+export type MaintenanceItem = '계단청소' | '화장실청소' | '분리수거' | '방역' | '방향제' | '포충기' | '창틀청소' | '바닥청소' | '입주청소' | '도배' | '입실' | '퇴실' | '철거' | '시설관리'
 
 export const MAINTENANCE_ITEMS: MaintenanceItem[] = [
   '계단청소',
@@ -56,6 +57,7 @@ export const MAINTENANCE_ITEMS: MaintenanceItem[] = [
   '방향제',
   '포충기',
   '창틀청소',
+  '바닥청소',
   '입주청소',
   '도배',
   '입실',
