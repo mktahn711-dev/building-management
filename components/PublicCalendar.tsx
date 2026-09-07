@@ -172,7 +172,7 @@ export default function PublicCalendar({ buildingId, buildingName, initialLogs }
       </div>
 
       {selectedLog && (
-        <MaintenanceDetail log={selectedLog} onClose={() => setSelectedLog(null)} />
+        <MaintenanceDetail log={selectedLog} onClose={() => setSelectedLog(null)} showPhotos={false} />
       )}
     </div>
   )

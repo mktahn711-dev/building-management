@@ -34,6 +34,7 @@ export interface MaintenanceLog {
   철거: boolean
   시설관리: boolean
   특이사항: string | null
+  photo_urls: string[] | null
   created_by: string | null
   created_at: string
 }

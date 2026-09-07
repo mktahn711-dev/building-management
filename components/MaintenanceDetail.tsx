@@ -1,10 +1,14 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { MaintenanceLog, MAINTENANCE_ITEMS } from '@/lib/types'
+import { getSignedPhotoUrls } from '@/lib/storage'
 
 interface MaintenanceDetailProps {
   log: MaintenanceLog
   onClose: () => void
+  // 로그인 없이 보는 QR 공개 페이지에서는 사진을 노출하지 않는다
+  showPhotos?: boolean
 }
 
 const itemEmojis: Record<string, string> = {
@@ -24,7 +28,7 @@ const itemEmojis: Record<string, string> = {
   시설관리: '🔧',
 }
 
-export default function MaintenanceDetail({ log, onClose }: MaintenanceDetailProps) {
+export default function MaintenanceDetail({ log, onClose, showPhotos = true }: MaintenanceDetailProps) {
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)
     const days = ['일', '월', '화', '수', '목', '금', '토']
@@ -32,6 +36,14 @@ export default function MaintenanceDetail({ log, onClose }: MaintenanceDetailPro
   }
 
   const completedItems = MAINTENANCE_ITEMS.filter((item) => log[item])
+  const photoPaths = showPhotos ? (log.photo_urls || []) : []
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    if (photoPaths.length === 0) return
+    getSignedPhotoUrls(photoPaths).then(setPhotoUrls)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [log.id, showPhotos])
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" onClick={onClose}>
@@ -103,6 +115,31 @@ export default function MaintenanceDetail({ log, onClose }: MaintenanceDetailPro
               </h4>
               <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
                 <p className="text-sm text-orange-800 leading-relaxed">{log.특이사항}</p>
+              </div>
+            </div>
+          )}
+
+          {/* 사진 */}
+          {photoPaths.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                <span className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center">
+                  <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                  </svg>
+                </span>
+                사진 ({photoPaths.length})
+              </h4>
+              <div className="grid grid-cols-3 gap-2">
+                {photoPaths.map((path) =>
+                  photoUrls[path] ? (
+                    <a key={path} href={photoUrls[path]} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-xl overflow-hidden bg-slate-100 block">
+                      <img src={photoUrls[path]} alt="" className="w-full h-full object-cover" />
+                    </a>
+                  ) : (
+                    <div key={path} className="aspect-square rounded-xl bg-slate-100 animate-pulse" />
+                  )
+                )}
               </div>
             </div>
           )}
