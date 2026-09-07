@@ -36,14 +36,16 @@ export default async function DashboardPage() {
   if (targetBuildingId) {
     const now = new Date()
     const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
-    const endOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-31`
+    const nextYear = now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear()
+    const nextMonth = now.getMonth() === 11 ? 0 : now.getMonth() + 1
+    const startOfNextMonth = `${nextYear}-${String(nextMonth + 1).padStart(2, '0')}-01`
 
     const { data } = await supabase
       .from('maintenance_logs')
       .select('*')
       .eq('building_id', targetBuildingId)
       .gte('date', startOfMonth)
-      .lte('date', endOfMonth)
+      .lt('date', startOfNextMonth)
 
     logs = data || []
   }

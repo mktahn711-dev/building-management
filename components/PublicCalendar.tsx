@@ -40,14 +40,16 @@ export default function PublicCalendar({ buildingId, buildingName, initialLogs }
 
     const supabase = createClient()
     const startOfMonth = `${newYear}-${String(newMonth + 1).padStart(2, '0')}-01`
-    const endOfMonth = `${newYear}-${String(newMonth + 1).padStart(2, '0')}-31`
+    const nextYear = newMonth === 11 ? newYear + 1 : newYear
+    const nextMonth = newMonth === 11 ? 0 : newMonth + 1
+    const startOfNextMonth = `${nextYear}-${String(nextMonth + 1).padStart(2, '0')}-01`
 
     const { data } = await supabase
       .from('maintenance_logs')
       .select('*')
       .eq('building_id', buildingId)
       .gte('date', startOfMonth)
-      .lte('date', endOfMonth)
+      .lt('date', startOfNextMonth)
 
     setLogs(data || [])
     setLoading(false)

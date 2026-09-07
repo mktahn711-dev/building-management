@@ -29,14 +29,16 @@ export default function AdminCalendarTabs({ buildings, initialLogs }: AdminCalen
       setLoading(true)
       const supabase = createClient()
       const startOfMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`
-      const endOfMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-31`
+      const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear
+      const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1
+      const startOfNextMonth = `${nextYear}-${String(nextMonth + 1).padStart(2, '0')}-01`
 
       const { data } = await supabase
         .from('maintenance_logs')
         .select('*')
         .eq('building_id', activeBuilding)
         .gte('date', startOfMonth)
-        .lte('date', endOfMonth)
+        .lt('date', startOfNextMonth)
 
       setLogs(data || [])
       setLoading(false)

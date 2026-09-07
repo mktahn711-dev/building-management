@@ -22,14 +22,16 @@ export default async function PublicViewPage({ params }: { params: Promise<{ bui
   // 이번 달 로그 조회
   const now = new Date()
   const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
-  const endOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-31`
+  const nextYear = now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear()
+  const nextMonth = now.getMonth() === 11 ? 0 : now.getMonth() + 1
+  const startOfNextMonth = `${nextYear}-${String(nextMonth + 1).padStart(2, '0')}-01`
 
   const { data: logs } = await supabase
     .from('maintenance_logs')
     .select('*')
     .eq('building_id', building.id)
     .gte('date', startOfMonth)
-    .lte('date', endOfMonth)
+    .lt('date', startOfNextMonth)
 
   return (
     <div className="min-h-screen bg-slate-50">
