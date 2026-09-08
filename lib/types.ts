@@ -39,6 +39,17 @@ export interface MaintenanceLog {
   created_at: string
 }
 
+export interface ScheduleEvent {
+  id: string
+  date: string
+  time: string | null
+  title: string
+  building_id: string | null
+  memo: string | null
+  created_by: string | null
+  created_at: string
+}
+
 export interface Memo {
   id: string
   building_id: string
