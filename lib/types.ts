@@ -46,6 +46,7 @@ export interface ScheduleEvent {
   title: string
   building_id: string | null
   memo: string | null
+  recurrence_group_id: string | null
   created_by: string | null
   created_at: string
 }

@@ -25,6 +25,8 @@ export default function ScheduleManager({ buildings, initialEvents }: ScheduleMa
   const [formTime, setFormTime] = useState('')
   const [formBuilding, setFormBuilding] = useState(NO_BUILDING)
   const [formMemo, setFormMemo] = useState('')
+  const [formRecurring, setFormRecurring] = useState(false)
+  const [formRecurrenceUntil, setFormRecurrenceUntil] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -99,6 +101,8 @@ export default function ScheduleManager({ buildings, initialEvents }: ScheduleMa
     setFormTime('')
     setFormBuilding(NO_BUILDING)
     setFormMemo('')
+    setFormRecurring(false)
+    setFormRecurrenceUntil('')
     setFormError(null)
     setFormOpen(false)
   }
@@ -109,6 +113,8 @@ export default function ScheduleManager({ buildings, initialEvents }: ScheduleMa
     setFormTime(ev.time ? ev.time.slice(0, 5) : '')
     setFormBuilding(ev.building_id || NO_BUILDING)
     setFormMemo(ev.memo || '')
+    setFormRecurring(false)
+    setFormRecurrenceUntil('')
     setFormError(null)
     setFormOpen(true)
   }
@@ -119,21 +125,47 @@ export default function ScheduleManager({ buildings, initialEvents }: ScheduleMa
     setFormTime('')
     setFormBuilding(NO_BUILDING)
     setFormMemo('')
+    setFormRecurring(false)
+    setFormRecurrenceUntil('')
     setFormError(null)
     setFormOpen(true)
+  }
+
+  // YYYY-MM-DD 문자열에 7일 단위로 더해가며, until(포함)까지의 날짜 목록을 만든다
+  const buildWeeklyDates = (start: string, until: string) => {
+    const dates: string[] = []
+    const cur = new Date(start + 'T00:00:00')
+    const end = new Date(until + 'T00:00:00')
+    while (cur <= end) {
+      const y = cur.getFullYear()
+      const m = String(cur.getMonth() + 1).padStart(2, '0')
+      const d = String(cur.getDate()).padStart(2, '0')
+      dates.push(`${y}-${m}-${d}`)
+      cur.setDate(cur.getDate() + 7)
+    }
+    return dates
   }
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedDate || !formTitle.trim()) return
+
+    if (formRecurring && !formRecurrenceUntil) {
+      setFormError('반복 종료일을 선택해주세요.')
+      return
+    }
+    if (formRecurring && formRecurrenceUntil < selectedDate) {
+      setFormError('반복 종료일은 시작일 이후여야 합니다.')
+      return
+    }
+
     setSaving(true)
     setFormError(null)
 
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    const payload = {
-      date: selectedDate,
+    const base = {
       time: formTime || null,
       title: formTitle.trim(),
       building_id: formBuilding === NO_BUILDING ? null : formBuilding,
@@ -142,11 +174,18 @@ export default function ScheduleManager({ buildings, initialEvents }: ScheduleMa
     }
 
     let error
+
     if (editingId) {
-      const res = await supabase.from('schedule_events').update(payload).eq('id', editingId)
+      const res = await supabase.from('schedule_events').update({ ...base, date: selectedDate }).eq('id', editingId)
+      error = res.error
+    } else if (formRecurring) {
+      const dates = buildWeeklyDates(selectedDate, formRecurrenceUntil)
+      const groupId = crypto.randomUUID()
+      const rows = dates.map((date) => ({ ...base, date, recurrence_group_id: groupId }))
+      const res = await supabase.from('schedule_events').insert(rows)
       error = res.error
     } else {
-      const res = await supabase.from('schedule_events').insert(payload)
+      const res = await supabase.from('schedule_events').insert({ ...base, date: selectedDate })
       error = res.error
     }
 
@@ -163,6 +202,13 @@ export default function ScheduleManager({ buildings, initialEvents }: ScheduleMa
   const handleDelete = async (id: string) => {
     const supabase = createClient()
     await supabase.from('schedule_events').delete().eq('id', id)
+    loadMonth(currentYear, currentMonth)
+  }
+
+  const handleDeleteSeries = async (groupId: string) => {
+    if (!confirm('이 반복 일정을 전체(과거·미래 포함) 삭제할까요?')) return
+    const supabase = createClient()
+    await supabase.from('schedule_events').delete().eq('recurrence_group_id', groupId)
     loadMonth(currentYear, currentMonth)
   }
 
@@ -297,8 +343,24 @@ export default function ScheduleManager({ buildings, initialEvents }: ScheduleMa
                               {ev.building_id && buildingMap.get(ev.building_id) && (
                                 <span className="text-[11px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">{buildingMap.get(ev.building_id)}</span>
                               )}
+                              {ev.recurrence_group_id && (
+                                <span className="text-[11px] px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 flex items-center gap-0.5">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  </svg>
+                                  매주 반복
+                                </span>
+                              )}
                             </div>
                             {ev.memo && <p className="text-xs text-slate-500 mt-1 whitespace-pre-wrap">{ev.memo}</p>}
+                            {ev.recurrence_group_id && (
+                              <button
+                                onClick={() => handleDeleteSeries(ev.recurrence_group_id!)}
+                                className="text-[11px] text-red-500 hover:text-red-700 underline mt-1"
+                              >
+                                반복 일정 전체 삭제
+                              </button>
+                            )}
                           </div>
                           <div className="flex gap-1 flex-shrink-0">
                             <button onClick={() => startEdit(ev)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg">
@@ -306,7 +368,7 @@ export default function ScheduleManager({ buildings, initialEvents }: ScheduleMa
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
                             </button>
-                            <button onClick={() => handleDelete(ev.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                            <button onClick={() => handleDelete(ev.id)} title="이 날짜만 삭제" className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                               </svg>
@@ -367,6 +429,33 @@ export default function ScheduleManager({ buildings, initialEvents }: ScheduleMa
                       </select>
                     </div>
                   </div>
+
+                  {!editingId && (
+                    <div className="bg-indigo-50/60 border border-indigo-100 rounded-xl p-3.5">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={formRecurring}
+                          onChange={(e) => setFormRecurring(e.target.checked)}
+                          className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="text-sm font-medium text-slate-700">매주 반복</span>
+                      </label>
+                      {formRecurring && (
+                        <div className="mt-3">
+                          <label className="block text-xs font-medium text-slate-600 mb-1.5">반복 종료일 (이 날짜까지 매주 등록)</label>
+                          <input
+                            type="date"
+                            value={formRecurrenceUntil}
+                            min={selectedDate || undefined}
+                            onChange={(e) => setFormRecurrenceUntil(e.target.value)}
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none text-slate-800"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">메모</label>
                     <textarea
@@ -395,7 +484,7 @@ export default function ScheduleManager({ buildings, initialEvents }: ScheduleMa
                       disabled={saving}
                       className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold"
                     >
-                      {saving ? '저장 중...' : editingId ? '수정 저장' : '추가'}
+                      {saving ? '저장 중...' : editingId ? '수정 저장' : formRecurring ? '반복 등록' : '추가'}
                     </button>
                   </div>
                 </form>
