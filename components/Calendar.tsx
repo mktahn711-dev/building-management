@@ -177,12 +177,8 @@ export default function Calendar({ logs, buildingName, onMonthChange }: Calendar
       {/* 범례 */}
       <div className="flex flex-wrap items-center gap-4 mt-4 px-1">
         <div className="flex items-center gap-1.5 text-sm text-slate-600">
-          <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-          전체 완료
-        </div>
-        <div className="flex items-center gap-1.5 text-sm text-slate-600">
           <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-          일부 완료
+          관리항목
         </div>
         <div className="flex items-center gap-1.5 text-sm text-slate-600">
           <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />
