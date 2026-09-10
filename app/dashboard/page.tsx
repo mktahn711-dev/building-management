@@ -1,21 +1,15 @@
 import { redirect } from 'next/navigation'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { getAuthedProfile } from '@/lib/get-profile'
 import Calendar from '@/components/Calendar'
 import { MaintenanceLog } from '@/lib/types'
 
 export default async function DashboardPage() {
-  const supabase = await createServerSupabaseClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user, profile } = await getAuthedProfile()
   if (!user) redirect('/login')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-
   if (!profile) redirect('/login')
+
+  const supabase = await createServerSupabaseClient()
 
   const isAdmin = profile.role === 'admin'
 

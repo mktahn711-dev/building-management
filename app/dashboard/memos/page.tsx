@@ -1,35 +1,16 @@
 import { redirect } from 'next/navigation'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { getAuthedProfile } from '@/lib/get-profile'
 import MemoSection from '@/components/MemoSection'
 
 export default async function MemosPage() {
-  const supabase = await createServerSupabaseClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user, profile } = await getAuthedProfile()
   if (!user) redirect('/login')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-
   if (!profile) redirect('/login')
 
-  const isAdmin = profile.role === 'admin'
+  const supabase = await createServerSupabaseClient()
 
-  // 관리자: 모든 건물의 메모 / 건물주: 본인 건물 메모
-  let buildings: { id: string; name: string }[] = []
-  if (isAdmin) {
-    const { data } = await supabase.from('buildings').select('id, name').order('name')
-    buildings = data || []
-  } else if (profile.building_id) {
-    const { data } = await supabase
-      .from('buildings')
-      .select('id, name')
-      .eq('id', profile.building_id)
-    buildings = data || []
-  }
+  const isAdmin = profile.role === 'admin'
 
   // 메모 불러오기
   type MemoRow = {
@@ -42,20 +23,24 @@ export default async function MemosPage() {
     buildings?: { name: string } | null
   }
 
+  // 관리자: 모든 건물/메모 / 건물주: 본인 건물/메모 — 서로 의존하지 않으니 동시에 조회
+  let buildings: { id: string; name: string }[] = []
   let allMemos: MemoRow[] = []
+
   if (isAdmin) {
-    const { data } = await supabase
-      .from('memos')
-      .select('*')
-      .order('created_at', { ascending: false })
-    allMemos = data || []
+    const [{ data: b }, { data: m }] = await Promise.all([
+      supabase.from('buildings').select('id, name').order('name'),
+      supabase.from('memos').select('*').order('created_at', { ascending: false }),
+    ])
+    buildings = b || []
+    allMemos = m || []
   } else if (profile.building_id) {
-    const { data } = await supabase
-      .from('memos')
-      .select('*')
-      .eq('building_id', profile.building_id)
-      .order('created_at', { ascending: false })
-    allMemos = data || []
+    const [{ data: b }, { data: m }] = await Promise.all([
+      supabase.from('buildings').select('id, name').eq('id', profile.building_id),
+      supabase.from('memos').select('*').eq('building_id', profile.building_id).order('created_at', { ascending: false }),
+    ])
+    buildings = b || []
+    allMemos = m || []
   }
 
   const targetBuildingId = isAdmin ? buildings[0]?.id : profile.building_id

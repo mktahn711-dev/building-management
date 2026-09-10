@@ -1,22 +1,17 @@
 import { redirect } from 'next/navigation'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { getAuthedProfile } from '@/lib/get-profile'
 import InviteForm from './InviteForm'
 
 export default async function InvitePage() {
-  const supabase = await createServerSupabaseClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user, profile } = await getAuthedProfile()
   if (!user) redirect('/login')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
 
   if (!profile || profile.role !== 'admin') {
     redirect('/dashboard')
   }
+
+  const supabase = await createServerSupabaseClient()
 
   const { data: buildings } = await supabase
     .from('buildings')
