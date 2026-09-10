@@ -23,7 +23,8 @@ export default async function MemosPage() {
     buildings?: { name: string } | null
   }
 
-  // 관리자: 모든 건물/메모 / 건물주: 본인 건물/메모 — 서로 의존하지 않으니 동시에 조회
+  // 관리자는 전체 건물/메모를 새로 조회해야 하지만,
+  // 건물주는 getAuthedProfile()이 이미 join해온 profile.buildings를 재사용해 메모만 조회한다.
   let buildings: { id: string; name: string }[] = []
   let allMemos: MemoRow[] = []
 
@@ -35,11 +36,12 @@ export default async function MemosPage() {
     buildings = b || []
     allMemos = m || []
   } else if (profile.building_id) {
-    const [{ data: b }, { data: m }] = await Promise.all([
-      supabase.from('buildings').select('id, name').eq('id', profile.building_id),
-      supabase.from('memos').select('*').eq('building_id', profile.building_id).order('created_at', { ascending: false }),
-    ])
-    buildings = b || []
+    if (profile.buildings) buildings = [profile.buildings]
+    const { data: m } = await supabase
+      .from('memos')
+      .select('*')
+      .eq('building_id', profile.building_id)
+      .order('created_at', { ascending: false })
     allMemos = m || []
   }
 

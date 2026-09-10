@@ -13,14 +13,14 @@ export default async function DashboardPage() {
 
   const isAdmin = profile.role === 'admin'
 
-  // 관리자: 모든 건물 / 건물주: 본인 건물만
+  // 관리자: 모든 건물 목록이 필요해 조회가 불가피하지만,
+  // 건물주는 이미 getAuthedProfile()이 join해온 profile.buildings를 그대로 쓰면 되므로 재조회하지 않는다.
   let buildings: { id: string; name: string; address: string | null }[] = []
   if (isAdmin) {
     const { data } = await supabase.from('buildings').select('*').order('name')
     buildings = data || []
-  } else if (profile.building_id) {
-    const { data } = await supabase.from('buildings').select('*').eq('id', profile.building_id)
-    buildings = data || []
+  } else if (profile.buildings) {
+    buildings = [profile.buildings]
   }
 
   // 이번 달 로그 불러오기 (관리자: 첫 번째 건물, 건물주: 본인 건물)
