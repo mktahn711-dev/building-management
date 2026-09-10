@@ -24,6 +24,7 @@ export default function ScheduleManager({ buildings, initialEvents }: ScheduleMa
   const [formTitle, setFormTitle] = useState('')
   const [formTime, setFormTime] = useState('')
   const [formBuilding, setFormBuilding] = useState(NO_BUILDING)
+  const [formAssignee, setFormAssignee] = useState('')
   const [formMemo, setFormMemo] = useState('')
   const [formRecurring, setFormRecurring] = useState(false)
   const [formRecurrenceUntil, setFormRecurrenceUntil] = useState('')
@@ -100,6 +101,7 @@ export default function ScheduleManager({ buildings, initialEvents }: ScheduleMa
     setFormTitle('')
     setFormTime('')
     setFormBuilding(NO_BUILDING)
+    setFormAssignee('')
     setFormMemo('')
     setFormRecurring(false)
     setFormRecurrenceUntil('')
@@ -112,6 +114,7 @@ export default function ScheduleManager({ buildings, initialEvents }: ScheduleMa
     setFormTitle(ev.title)
     setFormTime(ev.time ? ev.time.slice(0, 5) : '')
     setFormBuilding(ev.building_id || NO_BUILDING)
+    setFormAssignee(ev.assignee || '')
     setFormMemo(ev.memo || '')
     setFormRecurring(false)
     setFormRecurrenceUntil('')
@@ -124,6 +127,7 @@ export default function ScheduleManager({ buildings, initialEvents }: ScheduleMa
     setFormTitle('')
     setFormTime('')
     setFormBuilding(NO_BUILDING)
+    setFormAssignee('')
     setFormMemo('')
     setFormRecurring(false)
     setFormRecurrenceUntil('')
@@ -169,6 +173,7 @@ export default function ScheduleManager({ buildings, initialEvents }: ScheduleMa
       time: formTime || null,
       title: formTitle.trim(),
       building_id: formBuilding === NO_BUILDING ? null : formBuilding,
+      assignee: formAssignee.trim() || null,
       memo: formMemo.trim() || null,
       created_by: user?.id,
     }
@@ -343,6 +348,9 @@ export default function ScheduleManager({ buildings, initialEvents }: ScheduleMa
                               {ev.building_id && buildingMap.get(ev.building_id) && (
                                 <span className="text-[11px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">{buildingMap.get(ev.building_id)}</span>
                               )}
+                              {ev.assignee && (
+                                <span className="text-[11px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">👤 {ev.assignee}</span>
+                              )}
                               {ev.recurrence_group_id && (
                                 <span className="text-[11px] px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 flex items-center gap-0.5">
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -428,6 +436,17 @@ export default function ScheduleManager({ buildings, initialEvents }: ScheduleMa
                         ))}
                       </select>
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">담당자</label>
+                    <input
+                      type="text"
+                      value={formAssignee}
+                      onChange={(e) => setFormAssignee(e.target.value)}
+                      placeholder="예: 김관리"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-slate-800"
+                    />
                   </div>
 
                   {!editingId && (
