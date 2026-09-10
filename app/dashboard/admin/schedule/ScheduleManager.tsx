@@ -298,6 +298,7 @@ export default function ScheduleManager({ buildings, initialEvents }: ScheduleMa
                     <div key={ev.id} className="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 text-[10px] font-medium truncate">
                       {ev.time && <span className="opacity-70">{ev.time.slice(0, 5)} </span>}
                       {ev.title}
+                      {ev.assignee && <span className="opacity-70"> · {ev.assignee}</span>}
                     </div>
                   ))}
                   {dayEvents.length > 2 && (
