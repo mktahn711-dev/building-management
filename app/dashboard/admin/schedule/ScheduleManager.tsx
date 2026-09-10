@@ -200,6 +200,7 @@ export default function ScheduleManager({ buildings, initialEvents }: ScheduleMa
       setFormError('저장 중 오류가 발생했습니다: ' + error.message)
     } else {
       resetForm()
+      setSelectedDate(null)
       loadMonth(currentYear, currentMonth)
     }
   }
