@@ -156,8 +156,7 @@ export default function Calendar({ logs, buildingName, onMonthChange }: Calendar
                             ? 'bg-blue-500'
                             : 'bg-slate-400'
                         }`} />
-                        <span className="hidden sm:block">{completedCount}/{MAINTENANCE_ITEMS.length}</span>
-                        <span className="sm:hidden">{completedCount}</span>
+                        <span>완료</span>
                       </div>
                       {hasSpecial && (
                         <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-medium bg-orange-100 text-orange-700">
