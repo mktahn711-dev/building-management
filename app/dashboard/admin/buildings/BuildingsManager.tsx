@@ -54,14 +54,14 @@ export default function BuildingsManager({ initialBuildings }: BuildingsManagerP
 
     const supabase = createClient()
 
-    // 이 건물에 연결된 profiles가 있는지 확인
-    const { count: profileCount } = await supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .eq('building_id', id)
+    // 이 건물에 연결된 건물주가 있는지 확인 (owner_buildings가 기준, building_id는 하위 호환용으로 함께 체크)
+    const [{ count: ownerBuildingCount }, { count: profileCount }] = await Promise.all([
+      supabase.from('owner_buildings').select('id', { count: 'exact', head: true }).eq('building_id', id),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('building_id', id),
+    ])
 
-    if (profileCount && profileCount > 0) {
-      setDeleteError('이 건물에 등록된 건물주가 있어 삭제할 수 없습니다. 먼저 건물주를 다른 건물로 이동하거나 삭제해주세요.')
+    if ((ownerBuildingCount && ownerBuildingCount > 0) || (profileCount && profileCount > 0)) {
+      setDeleteError('이 건물에 등록된 건물주가 있어 삭제할 수 없습니다. 먼저 건물주 배정을 해제하거나 건물주를 삭제해주세요.')
       setDeletingId(null)
       setConfirmDeleteId(null)
       return

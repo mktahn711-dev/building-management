@@ -10,12 +10,13 @@ interface Building {
   name: string
 }
 
-interface AdminMemosViewProps {
+interface BuildingMemosViewProps {
   buildings: Building[]
   currentUserId: string
+  isAdmin: boolean
 }
 
-export default function AdminMemosView({ buildings, currentUserId }: AdminMemosViewProps) {
+export default function BuildingMemosView({ buildings, currentUserId, isAdmin }: BuildingMemosViewProps) {
   const [activeBuilding, setActiveBuilding] = useState(buildings[0]?.id || '')
   const [memosByBuilding, setMemosByBuilding] = useState<Record<string, Memo[]>>({})
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
@@ -40,8 +41,9 @@ export default function AdminMemosView({ buildings, currentUserId }: AdminMemosV
     loadMemos()
   }, [activeBuilding, memosByBuilding])
 
-  // 전체 미읽음 수 로드
+  // 전체 미읽음 수 로드 (관리자 전용 — 건물주 화면에선 의미 없는 정보)
   useEffect(() => {
+    if (!isAdmin) return
     const loadUnread = async () => {
       const supabase = createClient()
       const { data } = await supabase
@@ -56,7 +58,7 @@ export default function AdminMemosView({ buildings, currentUserId }: AdminMemosV
       setUnreadCounts(counts)
     }
     loadUnread()
-  }, [])
+  }, [isAdmin])
 
   const currentMemos = memosByBuilding[activeBuilding] || []
 
@@ -75,7 +77,7 @@ export default function AdminMemosView({ buildings, currentUserId }: AdminMemosV
             }`}
           >
             {building.name}
-            {unreadCounts[building.id] > 0 && (
+            {isAdmin && unreadCounts[building.id] > 0 && (
               <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
                 activeBuilding === building.id ? 'bg-white text-blue-600' : 'bg-red-500 text-white'
               }`}>
@@ -97,7 +99,7 @@ export default function AdminMemosView({ buildings, currentUserId }: AdminMemosV
         <MemoSection
           memos={currentMemos}
           buildingId={activeBuilding}
-          isAdmin={true}
+          isAdmin={isAdmin}
           currentUserId={currentUserId}
         />
       )}

@@ -55,12 +55,20 @@ export default function SetPasswordPage() {
 
       if (!existingProfile) {
         const meta = user.user_metadata || {}
+        const buildingIds: string[] = meta.building_ids || (meta.building_id ? [meta.building_id] : [])
+
         await supabase.from('profiles').insert({
           id: user.id,
           role: meta.role || 'owner',
-          building_id: meta.building_id || null,
+          building_id: buildingIds[0] || null,
           name: meta.name || null,
         })
+
+        if (buildingIds.length > 0) {
+          await supabase
+            .from('owner_buildings')
+            .insert(buildingIds.map((bid) => ({ owner_id: user.id, building_id: bid })))
+        }
       }
     }
 

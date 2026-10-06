@@ -10,6 +10,7 @@ interface NavBarProps {
     role: string
     name: string | null
     buildings?: { name: string } | null
+    ownedBuildings?: { name: string }[]
   }
   user: { email?: string }
 }
@@ -28,7 +29,11 @@ export default function NavBar({ profile, user }: NavBarProps) {
 
   const isAdmin = profile.role === 'admin'
   const displayName = profile.name || user.email || '사용자'
-  const buildingName = (profile.buildings as { name: string } | null)?.name
+  const ownedBuildings = profile.ownedBuildings || []
+  const buildingName =
+    ownedBuildings.length > 1
+      ? `건물 ${ownedBuildings.length}개`
+      : ownedBuildings[0]?.name || (profile.buildings as { name: string } | null)?.name
 
   const navItems = [
     {

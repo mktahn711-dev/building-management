@@ -231,6 +231,101 @@ vercel --prod
 
 ---
 
+## 8. 건물주 다중 건물 지원 (2026-10-06 추가)
+
+기존에는 `profiles.building_id`가 단일 값이라 건물주 한 명이 건물 1개만 가질 수 있었다. 아래 SQL을 Supabase 대시보드 → **SQL Editor** → **New Query** 에서 실행하면, 건물주 한 명이 여러 건물을 담당할 수 있게 하는 `owner_buildings` 다대다 테이블이 추가되고, 기존 단일 건물 배정 데이터가 자동으로 이전된다. `profiles.building_id` 컬럼 자체는 하위 호환을 위해 그대로 남겨두지만, 앱 코드와 RLS 정책은 이제 `owner_buildings`를 기준으로 동작한다. 여러 번 실행해도 안전하다(idempotent).
+
+```sql
+-- is_admin() 헬퍼 함수 (이미 있다면 그대로 재사용됨 — profiles 자기참조로 인한 무한 재귀를 피하기 위한 security definer 함수)
+create or replace function is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from profiles where id = auth.uid() and role = 'admin'
+  );
+$$;
+
+-- 건물주 ↔ 건물 다대다 연결 테이블
+create table if not exists owner_buildings (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid references profiles(id) on delete cascade not null,
+  building_id uuid references buildings(id) on delete cascade not null,
+  created_at timestamptz default now(),
+  unique(owner_id, building_id)
+);
+
+alter table owner_buildings enable row level security;
+
+-- 기존 profiles.building_id 데이터를 owner_buildings로 1회성 이전
+insert into owner_buildings (owner_id, building_id)
+select id, building_id from profiles
+where role = 'owner' and building_id is not null
+on conflict (owner_id, building_id) do nothing;
+
+-- owner_buildings RLS
+drop policy if exists "owner_buildings_select_own" on owner_buildings;
+create policy "owner_buildings_select_own" on owner_buildings
+  for select using (auth.uid() = owner_id);
+
+drop policy if exists "owner_buildings_insert_own" on owner_buildings;
+create policy "owner_buildings_insert_own" on owner_buildings
+  for insert with check (auth.uid() = owner_id);
+
+drop policy if exists "owner_buildings_admin_all" on owner_buildings;
+create policy "owner_buildings_admin_all" on owner_buildings
+  for all using (is_admin()) with check (is_admin());
+
+-- buildings / maintenance_logs / memos의 "건물주는 본인 건물만" 정책을
+-- profiles.building_id(단일값) 대신 owner_buildings(다대다) 기준으로 교체
+drop policy if exists "buildings_owner_select" on buildings;
+create policy "buildings_owner_select" on buildings
+  for select using (
+    exists (
+      select 1 from owner_buildings ob
+      where ob.owner_id = auth.uid() and ob.building_id = buildings.id
+    )
+  );
+
+drop policy if exists "logs_owner_select" on maintenance_logs;
+create policy "logs_owner_select" on maintenance_logs
+  for select using (
+    exists (
+      select 1 from owner_buildings ob
+      where ob.owner_id = auth.uid() and ob.building_id = maintenance_logs.building_id
+    )
+  );
+
+drop policy if exists "memos_owner_select" on memos;
+create policy "memos_owner_select" on memos
+  for select using (
+    exists (
+      select 1 from owner_buildings ob
+      where ob.owner_id = auth.uid() and ob.building_id = memos.building_id
+    )
+  );
+
+drop policy if exists "memos_owner_insert" on memos;
+create policy "memos_owner_insert" on memos
+  for insert with check (
+    exists (
+      select 1 from owner_buildings ob
+      where ob.owner_id = auth.uid() and ob.building_id = memos.building_id
+    )
+  );
+```
+
+실행 후 동작:
+- **새 건물주 초대**: `/dashboard/admin/invite`에서 건물을 체크박스로 여러 개 선택해 한 번에 초대 가능.
+- **이미 가입된 이메일로 다시 초대**: 새 초대 메일을 보내는 대신, 그 계정에 선택한 건물을 추가로 배정한다 (기존엔 "이미 가입된 이메일입니다" 에러만 뜨고 끝이었음).
+- **기존 건물주의 건물 추가/해제**: 같은 페이지의 "등록된 건물주" 목록에서 버튼 클릭으로 언제든 변경 가능.
+- **건물주 화면**: 담당 건물이 2개 이상이면 관리자 화면과 동일한 건물 탭 UI(캘린더/메모 모두)로 전환된다.
+
+---
+
 ## 주요 기능 요약
 
 | 역할 | 기능 |
@@ -256,8 +351,8 @@ building-management/
 │   ├── MaintenanceForm.tsx     # 관리내역 입력 폼
 │   ├── MaintenanceDetail.tsx   # 날짜 클릭 시 상세 모달
 │   ├── MemoSection.tsx         # 메모 목록/작성
-│   ├── AdminCalendarTabs.tsx   # 관리자용 건물 탭 캘린더
-│   ├── AdminMemosView.tsx      # 관리자용 건물별 메모 뷰
+│   ├── BuildingCalendarTabs.tsx # 건물 탭 캘린더 (관리자/다건물 건물주 공용)
+│   ├── BuildingMemosView.tsx   # 건물별 메모 탭 뷰 (관리자/다건물 건물주 공용)
 │   └── NavBar.tsx              # 상단 네비게이션
 ├── lib/
 │   ├── supabase.ts             # Supabase 클라이언트/서버 설정

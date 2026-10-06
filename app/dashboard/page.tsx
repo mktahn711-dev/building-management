@@ -14,17 +14,17 @@ export default async function DashboardPage() {
   const isAdmin = profile.role === 'admin'
 
   // 관리자: 모든 건물 목록이 필요해 조회가 불가피하지만,
-  // 건물주는 이미 getAuthedProfile()이 join해온 profile.buildings를 그대로 쓰면 되므로 재조회하지 않는다.
+  // 건물주는 이미 getAuthedProfile()이 조회해온 profile.ownedBuildings(담당 건물 전체, 1개 이상)를 그대로 쓰면 되므로 재조회하지 않는다.
   let buildings: { id: string; name: string; address: string | null }[] = []
   if (isAdmin) {
     const { data } = await supabase.from('buildings').select('*').order('name')
     buildings = data || []
-  } else if (profile.buildings) {
-    buildings = [profile.buildings]
+  } else {
+    buildings = profile.ownedBuildings
   }
 
-  // 이번 달 로그 불러오기 (관리자: 첫 번째 건물, 건물주: 본인 건물)
-  const targetBuildingId = isAdmin ? buildings[0]?.id : profile.building_id
+  // 이번 달 로그 불러오기 (첫 번째 건물 기준 — 건물이 여러 개면 탭에서 바꿔가며 조회)
+  const targetBuildingId = buildings[0]?.id
 
   let logs: MaintenanceLog[] = []
   if (targetBuildingId) {
@@ -60,13 +60,13 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* 관리자: 건물 탭 */}
-      {isAdmin && buildings.length > 1 && (
-        <AdminCalendarTabs buildings={buildings} initialLogs={logs} />
+      {/* 건물이 여러 개면 탭으로 전환 (관리자 전체 건물 / 건물주가 여러 건물을 가진 경우 모두 해당) */}
+      {buildings.length > 1 && (
+        <BuildingCalendarTabs buildings={buildings} initialLogs={logs} />
       )}
 
       {/* 단일 건물 캘린더 */}
-      {(!isAdmin || buildings.length <= 1) && (
+      {buildings.length <= 1 && (
         <Calendar
           logs={logs}
           buildingName={targetBuilding?.name}
@@ -87,5 +87,5 @@ export default async function DashboardPage() {
   )
 }
 
-// 관리자용 탭 컴포넌트 (클라이언트)
-import AdminCalendarTabs from '@/components/AdminCalendarTabs'
+// 건물이 여러 개일 때 쓰는 탭 컴포넌트 (클라이언트)
+import BuildingCalendarTabs from '@/components/BuildingCalendarTabs'

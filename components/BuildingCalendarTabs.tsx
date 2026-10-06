@@ -11,12 +11,12 @@ interface Building {
   address: string | null
 }
 
-interface AdminCalendarTabsProps {
+interface BuildingCalendarTabsProps {
   buildings: Building[]
   initialLogs: MaintenanceLog[]
 }
 
-export default function AdminCalendarTabs({ buildings, initialLogs }: AdminCalendarTabsProps) {
+export default function BuildingCalendarTabs({ buildings, initialLogs }: BuildingCalendarTabsProps) {
   const [activeBuilding, setActiveBuilding] = useState(buildings[0]?.id || '')
   const [logs, setLogs] = useState<MaintenanceLog[]>(initialLogs)
   const [loading, setLoading] = useState(false)

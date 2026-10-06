@@ -24,7 +24,8 @@ export default async function MemosPage() {
   }
 
   // 관리자는 전체 건물/메모를 새로 조회해야 하지만,
-  // 건물주는 getAuthedProfile()이 이미 join해온 profile.buildings를 재사용해 메모만 조회한다.
+  // 건물주는 getAuthedProfile()이 이미 조회해온 profile.ownedBuildings를 재사용한다.
+  // (건물이 1개뿐이면 서버에서 메모까지 바로 조회, 여러 개면 BuildingMemosView가 탭 전환 시마다 알아서 불러온다.)
   let buildings: { id: string; name: string }[] = []
   let allMemos: MemoRow[] = []
 
@@ -35,17 +36,19 @@ export default async function MemosPage() {
     ])
     buildings = b || []
     allMemos = m || []
-  } else if (profile.building_id) {
-    if (profile.buildings) buildings = [profile.buildings]
-    const { data: m } = await supabase
-      .from('memos')
-      .select('*')
-      .eq('building_id', profile.building_id)
-      .order('created_at', { ascending: false })
-    allMemos = m || []
+  } else {
+    buildings = profile.ownedBuildings
+    if (buildings.length === 1) {
+      const { data: m } = await supabase
+        .from('memos')
+        .select('*')
+        .eq('building_id', buildings[0].id)
+        .order('created_at', { ascending: false })
+      allMemos = m || []
+    }
   }
 
-  const targetBuildingId = isAdmin ? buildings[0]?.id : profile.building_id
+  const targetBuildingId = buildings[0]?.id
 
   return (
     <div>
@@ -62,11 +65,16 @@ export default async function MemosPage() {
 
       {/* 관리자: 건물별 메모 탭 */}
       {isAdmin && buildings.length > 0 && (
-        <AdminMemosView buildings={buildings} currentUserId={user.id} />
+        <BuildingMemosView buildings={buildings} currentUserId={user.id} isAdmin={true} />
+      )}
+
+      {/* 건물주가 여러 건물을 가진 경우: 건물별 메모 탭 */}
+      {!isAdmin && buildings.length > 1 && (
+        <BuildingMemosView buildings={buildings} currentUserId={user.id} isAdmin={false} />
       )}
 
       {/* 건물주: 단일 건물 메모 */}
-      {!isAdmin && targetBuildingId && (
+      {!isAdmin && buildings.length === 1 && targetBuildingId && (
         <MemoSection
           memos={allMemos}
           buildingId={targetBuildingId}
@@ -84,5 +92,5 @@ export default async function MemosPage() {
   )
 }
 
-// 관리자용 건물별 메모 뷰
-import AdminMemosView from '@/components/AdminMemosView'
+// 건물별 메모 탭 뷰 (관리자/건물주 공용)
+import BuildingMemosView from '@/components/BuildingMemosView'

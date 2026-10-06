@@ -14,14 +14,24 @@ interface InviteFormProps {
 export default function InviteForm({ buildings }: InviteFormProps) {
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
-  const [buildingId, setBuildingId] = useState(buildings[0]?.id || '')
+  const [buildingIds, setBuildingIds] = useState<string[]>(buildings[0] ? [buildings[0].id] : [])
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState<string | null>(null)
   const [warning, setWarning] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  const toggleBuilding = (id: string) => {
+    setBuildingIds((prev) =>
+      prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]
+    )
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (buildingIds.length === 0) {
+      setError('담당 건물을 하나 이상 선택해주세요.')
+      return
+    }
     setLoading(true)
     setSuccess(null)
     setWarning(null)
@@ -31,7 +41,7 @@ export default function InviteForm({ buildings }: InviteFormProps) {
       const res = await fetch('/api/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, building_id: buildingId, name }),
+        body: JSON.stringify({ email, building_ids: buildingIds, name }),
       })
 
       const data = await res.json()
@@ -44,7 +54,7 @@ export default function InviteForm({ buildings }: InviteFormProps) {
         // 폼 초기화
         setEmail('')
         setName('')
-        setBuildingId(buildings[0]?.id || '')
+        setBuildingIds(buildings[0] ? [buildings[0].id] : [])
       }
     } catch {
       setError('네트워크 오류가 발생했습니다.')
@@ -81,7 +91,7 @@ export default function InviteForm({ buildings }: InviteFormProps) {
           </svg>
           <div className="text-sm text-blue-800">
             <p className="font-medium mb-0.5">초대 안내</p>
-            <p className="text-blue-700">초대 이메일이 발송되면, 건물주가 이메일 링크를 클릭해 비밀번호를 설정하고 바로 로그인할 수 있습니다.</p>
+            <p className="text-blue-700">초대 이메일이 발송되면, 건물주가 이메일 링크를 클릭해 비밀번호를 설정하고 바로 로그인할 수 있습니다. 이미 가입된 이메일로 다시 초대하면 새로 메일을 보내지 않고, 선택한 건물만 해당 건물주에게 추가로 배정됩니다.</p>
           </div>
         </div>
 
@@ -118,28 +128,27 @@ export default function InviteForm({ buildings }: InviteFormProps) {
             />
           </div>
 
-          {/* 건물 선택 */}
+          {/* 건물 선택 (여러 개 선택 가능 — 한 사람이 여러 건물을 담당할 수 있음) */}
           <div>
-            <label htmlFor="building" className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
               담당 건물 <span className="text-red-500">*</span>
+              <span className="text-slate-400 font-normal text-xs ml-1">(복수 선택 가능)</span>
             </label>
-            <div className="relative">
-              <select
-                id="building"
-                value={buildingId}
-                onChange={(e) => setBuildingId(e.target.value)}
-                required
-                className="w-full px-4 py-3 pr-10 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none appearance-none bg-white text-slate-800"
-              >
-                {buildings.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-              <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+            <div className="space-y-2 max-h-56 overflow-y-auto border border-slate-200 rounded-xl p-3">
+              {buildings.map((b) => (
+                <label
+                  key={b.id}
+                  className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={buildingIds.includes(b.id)}
+                    onChange={() => toggleBuilding(b.id)}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-slate-700">{b.name}</span>
+                </label>
+              ))}
             </div>
           </div>
 
