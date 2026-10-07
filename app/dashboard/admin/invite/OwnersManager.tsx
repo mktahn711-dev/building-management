@@ -85,7 +85,7 @@ export default function OwnersManager({ buildings }: OwnersManagerProps) {
     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
       <h2 className="text-base font-semibold text-slate-800 mb-1">등록된 건물주</h2>
       <p className="text-sm text-slate-500 mb-4">
-        체크박스로 건물주별 담당 건물을 언제든 추가/해제할 수 있습니다. 한 명이 여러 건물을 담당해도 됩니다.
+        건물 이름을 누르면 그 자리에서 바로 배정이 추가/해제됩니다 (저장 버튼 없음). 파란색으로 채워진 건물이 현재 배정된 건물이고, 한 명이 여러 건물을 담당해도 됩니다.
       </p>
 
       {error && (
