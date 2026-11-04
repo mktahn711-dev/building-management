@@ -21,6 +21,11 @@ export default function BuildingsManager({ initialBuildings }: BuildingsManagerP
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [qrBuildingId, setQrBuildingId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editAddress, setEditAddress] = useState('')
+  const [editLoading, setEditLoading] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,6 +50,46 @@ export default function BuildingsManager({ initialBuildings }: BuildingsManagerP
       setNewAddress('')
       setAddSuccess(true)
       setTimeout(() => setAddSuccess(false), 3000)
+    }
+  }
+
+  const startEdit = (building: Building) => {
+    setEditingId(building.id)
+    setEditName(building.name)
+    setEditAddress(building.address || '')
+    setEditError(null)
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditError(null)
+  }
+
+  const handleEditSave = async (id: string) => {
+    if (!editName.trim()) {
+      setEditError('건물 이름을 입력해주세요.')
+      return
+    }
+    setEditLoading(true)
+    setEditError(null)
+
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from('buildings')
+      .update({ name: editName.trim(), address: editAddress.trim() || null })
+      .eq('id', id)
+      .select()
+      .single()
+
+    setEditLoading(false)
+
+    if (error) {
+      setEditError('수정 중 오류가 발생했습니다: ' + error.message)
+    } else {
+      setBuildings((prev) =>
+        prev.map((b) => (b.id === id ? data : b)).sort((a, b) => a.name.localeCompare(b.name))
+      )
+      setEditingId(null)
     }
   }
 
@@ -195,6 +240,42 @@ export default function BuildingsManager({ initialBuildings }: BuildingsManagerP
           <ul className="divide-y divide-slate-100">
             {buildings.map((building) => (
               <li key={building.id} className="py-4 first:pt-0 last:pb-0">
+                {editingId === building.id ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="건물 이름"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-slate-800"
+                      />
+                      <input
+                        type="text"
+                        value={editAddress}
+                        onChange={(e) => setEditAddress(e.target.value)}
+                        placeholder="주소 (선택)"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-slate-800"
+                      />
+                    </div>
+                    {editError && <p className="text-sm text-red-600">{editError}</p>}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleEditSave(building.id)}
+                        disabled={editLoading}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-medium rounded-lg transition"
+                      >
+                        {editLoading ? '저장 중...' : '저장'}
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition"
+                      >
+                        취소
+                      </button>
+                    </div>
+                  </div>
+                ) : (
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -212,6 +293,17 @@ export default function BuildingsManager({ initialBuildings }: BuildingsManagerP
 
                   {/* 버튼 영역 */}
                   <div className="flex-shrink-0 flex items-center gap-2">
+                    {/* 수정 버튼 */}
+                    <button
+                      onClick={() => startEdit(building)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      수정
+                    </button>
+
                     {/* QR코드 버튼 */}
                     <button
                       onClick={() => setQrBuildingId(qrBuildingId === building.id ? null : building.id)}
@@ -254,6 +346,7 @@ export default function BuildingsManager({ initialBuildings }: BuildingsManagerP
                     )}
                   </div>
                 </div>
+                )}
                 {/* QR코드 패널 */}
                 {qrBuildingId === building.id && (() => {
                   const url = `${SITE_URL}/view/${building.id}`
